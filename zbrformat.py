@@ -12,7 +12,7 @@ def drawStructure(data, record_pos, indent=0):
         # string?
         print ("%sstr \"%s\"" % (" " * indent, makeString(data[record_pos+12:record_pos+12+l-4])))
     else:
-        ofs = record_pos + 12
+        ofs = record_pos + 10
         end = record_pos + l - 4
         while ofs < end:
             c = 0
@@ -49,7 +49,7 @@ def parseZbr(path : str):
     print (w1, h1, w2, h2)
 
     # guess the start of the rle compressed icon data
-    _,id, ofs = struct.unpack_from("<IHI", data, 0xA2)
+    _, id, _ = struct.unpack_from("<IHI", data, 0xA2)
     if id == 0x05:
         rleStart = 0xE8
     elif id == 0x08:
@@ -91,14 +91,15 @@ def parseZbr(path : str):
 def main():
     for f in glob.glob("data/*.ZBR"):
         parseZbr(f)
-    for f in glob.glob("data/*.ZMT"):
-        parseZbr(f)
-    for f in glob.glob("data/*.ZPR"):
-        parseZbr(f)
-    for f in glob.glob("data/*.ZMO"):
-        parseZbr(f)
-    for f in glob.glob("data/*.ZTL"):
-        parseZbr(f)
+    if False:
+        for f in glob.glob("data/*.ZMT"):
+            parseZbr(f)
+        for f in glob.glob("data/*.ZPR"):
+            parseZbr(f)
+        for f in glob.glob("data/*.ZMO"):
+            parseZbr(f)
+        for f in glob.glob("data/*.ZTL"):
+            parseZbr(f)
 
 if __name__ == "__main__":
     main()
