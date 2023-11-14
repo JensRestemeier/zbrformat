@@ -80,7 +80,7 @@ struct ThumbnailHeader {
     (0x01):
         ThumbnailHeader01 h;
     (_): 
-        std::warning("Unknown header type");
+        std::warning(std::format("Unknown record type {}", start.version_or_type));
     }
     $ = start.end_ofs;
     ChunkEnd end;
@@ -125,7 +125,7 @@ struct ThumbnailRleCompressedData {
     (0x06):
         ThumbnailRleCompressedData06 d;
     (_): 
-        std::warning(std::format("Unknown data type {}", start.version_or_type));
+        std::warning(std::format("Unknown record type {}", start.version_or_type));
     }
     $ = start.end_ofs;
     ChunkEnd end;
@@ -186,7 +186,7 @@ struct UnknownA {
         u16 U1;
     }
     (_): 
-        std::warning("Unknown record type");
+        std::warning(std::format("Unknown record type {}", start.version_or_type));
     }
     $ = start.end_ofs;
     ChunkEnd end;
@@ -199,7 +199,7 @@ struct UnknownB {
         u16 U1[17];
     }
     (_): 
-        std::warning("Unknown record type");
+        std::warning(std::format("Unknown record type {}", start.version_or_type));
     }
     $ = start.end_ofs;
     ChunkEnd end;
@@ -233,7 +233,7 @@ struct ImageData {
         ImageData1C d;
     }
     (_): 
-        std::warning("Unknown record type");
+        std::warning(std::format("Unknown record type {}", start.version_or_type));
     }
     SubChunk subChunks[while($ < start.end_ofs)];
     $ = start.end_ofs;
@@ -265,11 +265,10 @@ struct MaterialData07 {
 struct MaterialData {
     ChunkStart start;
     match (start.version_or_type) {
-    (0x07): {
+    (0x07): 
         MaterialData07 d;
-    }
     (_): 
-        std::warning("Unknown record type");
+        std::warning(std::format("Unknown record type {}", start.version_or_type));
     }
     SubChunk subChunks[while($ < start.end_ofs)];
     $ = start.end_ofs;
@@ -280,8 +279,8 @@ struct ZmtData {
     String name;
     ThumbnailHeader thumbnailHeader;
     ThumbnailData thumbnailData;
-    //String materialName;
-    //MaterialData materialData;
+    String materialName;
+    MaterialData materialData;
 };
 
 struct Document {
