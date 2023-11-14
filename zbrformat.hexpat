@@ -1,5 +1,5 @@
 #pragma description Quick test decoding the zbrush document structure with https://docs.werwolv.net/imhex/
-#pragma authon jens.restemeier@gmail.com
+#pragma author jens.restemeier@gmail.com
 #pragma endian little
 
 // ZBrush files seem to be a serialisation format, requiring knowledge of the data structures to properly decode.
@@ -31,7 +31,7 @@ using SubChunk;
 
 struct Chunk {
     ChunkStart start;
-    u8 data[while(std::mem::read_unsigned($,4) != ChunkTag::start && $ < start.end_ofs)];
+    u8 data[while(std::mem::read_unsigned($,4) != ChunkTag::start && std::mem::read_unsigned($,4) != ChunkTag::end && $ < start.end_ofs && $ < sizeof($))];
 
     SubChunk subChunks[while($ < start.end_ofs)];
             
@@ -41,7 +41,7 @@ struct Chunk {
 
 struct SubChunk {
     Chunk chunk;
-    u8 data[while(std::mem::read_unsigned($,4) != ChunkTag::start && std::mem::read_unsigned($,4) != ChunkTag::end)];
+    u8 data[while(std::mem::read_unsigned($,4) != ChunkTag::start && std::mem::read_unsigned($,4) != ChunkTag::end && $ < sizeof($))];
 };
 
 struct String {
@@ -55,7 +55,7 @@ struct String {
         std::assert_warn(unknown == 0, "unknown is not 0");
     }
     (_): 
-        std::warning("Unknown string type");
+        std::warning(std::format("Unknown string type {}", start.version_or_type));
     }
     $ = start.end_ofs;
     ChunkEnd end [[hidden]];
@@ -86,6 +86,20 @@ struct ThumbnailHeader {
     ChunkEnd end;
 };
 
+struct ThumbnailRleCompressedData05 {
+    u32 uncompressed_size;
+    u16 h[8];
+    u32 compressed_size;
+    u32 I[2];
+    
+    u8 compressedData[compressed_size - 4];
+
+    // Not sure how to decompress this? I mean, I have the algorithm, but not sure what the expected behaviour is?   
+    // std::mem::Section uncompressedDataSectopm = std::mem::create_section("uncompressedData");
+    // u8 uncompressedData[uncompressed_size] @ 0x00 in uncompressedDataSectopm;
+};
+
+
 struct ThumbnailRleCompressedData06 {
     u32 uncompressed_size;
     u32 I2;
@@ -106,34 +120,37 @@ struct ThumbnailRleCompressedData06 {
 struct ThumbnailRleCompressedData {
     ChunkStart start;
     match (start.version_or_type) {
+    (0x05):
+        ThumbnailRleCompressedData05 d;
     (0x06):
         ThumbnailRleCompressedData06 d;
     (_): 
-        std::warning("Unknown data type");
+        std::warning(std::format("Unknown data type {}", start.version_or_type));
     }
     $ = start.end_ofs;
     ChunkEnd end;
 };
 
+struct ThumbnailData05 {
+    u32 I[2];
+    u8 B[14];
+
+    ThumbnailRleCompressedData rleCompressedData;
+};
+
+struct ThumbnailData08 {
+    u32 I[2];
+    u8 B[16];
+    float f1;
+    float f2;
+    u16 H1;
+
+    ThumbnailRleCompressedData rleCompressedData;
+};
+
 struct ThumbnailData0A {
-    u32 I1;
-    u32 I2;
-    u8 B1;
-    u8 B2;
-    u8 B3;
-    u8 B4;
-    u8 B5;
-    u8 B6;
-    u8 B7;
-    u8 B8;
-    u8 B9;
-    u8 B10;
-    u8 B11;
-    u8 B12;
-    u8 B13;
-    u8 B14;
-    u8 B15;
-    u8 B16;
+    u32 I[2];
+    u8 B[16];
     float f1;
     float f2;
     u32 I3;
@@ -147,10 +164,16 @@ struct ThumbnailData0A {
 struct ThumbnailData {
     ChunkStart start;
     match (start.version_or_type) {
+    (0x05):
+        ThumbnailData05 d;
+    (0x08):
+        ThumbnailData08 d;
     (0x0A):
         ThumbnailData0A d;
-    (_): 
-        std::warning("Unknown string type");
+    (_): {
+            std::warning(std::format("Unknown record type {}", start.version_or_type));
+            //SubChunk subChunks[while($ < start.end_ofs)];
+        }
     }
     $ = start.end_ofs;
     ChunkEnd end;
@@ -163,7 +186,7 @@ struct UnknownA {
         u16 U1;
     }
     (_): 
-        std::warning("Unknown string type");
+        std::warning("Unknown record type");
     }
     $ = start.end_ofs;
     ChunkEnd end;
@@ -176,7 +199,7 @@ struct UnknownB {
         u16 U1[17];
     }
     (_): 
-        std::warning("Unknown string type");
+        std::warning("Unknown record type");
     }
     $ = start.end_ofs;
     ChunkEnd end;
@@ -203,7 +226,6 @@ struct ImageData1C {
     ImageHeader header;
 };
 
-
 struct ImageData {
     ChunkStart start;
     match (start.version_or_type) {
@@ -211,7 +233,7 @@ struct ImageData {
         ImageData1C d;
     }
     (_): 
-        std::warning("Unknown string type");
+        std::warning("Unknown record type");
     }
     SubChunk subChunks[while($ < start.end_ofs)];
     $ = start.end_ofs;
@@ -227,6 +249,41 @@ struct ZbrData {
     ImageData imageData;
 };
 
+struct MaterialData07 {
+    u32 I1;
+    u32 I2;
+    float f1;
+    u32 I3;
+    u32 I4;
+    float f2;
+    float f3;
+    float f4;
+    float f5;
+    float f6;
+};
+
+struct MaterialData {
+    ChunkStart start;
+    match (start.version_or_type) {
+    (0x07): {
+        MaterialData07 d;
+    }
+    (_): 
+        std::warning("Unknown record type");
+    }
+    SubChunk subChunks[while($ < start.end_ofs)];
+    $ = start.end_ofs;
+    ChunkEnd end;
+};
+
+struct ZmtData {
+    String name;
+    ThumbnailHeader thumbnailHeader;
+    ThumbnailData thumbnailData;
+    //String materialName;
+    //MaterialData materialData;
+};
+
 struct Document {
     char copyright[] @ 0x00;
     char filetype[] @ 0x4C;
@@ -235,6 +292,8 @@ struct Document {
     $ = 0x5C;
     match (filetype) {
         ("RBZ\x00"): ZbrData zbrData;
+        ("TMZ\x00"): ZmtData zmtData;
+        (_): std::error(std::format("Unknown file type {}", filetype));
     }
     Chunk chunks[while($ < sizeof($))];
 };
