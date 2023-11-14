@@ -182,6 +182,14 @@ struct UnknownB {
     ChunkEnd end;
 };
 
+struct ImageHeader {
+    ChunkStart start;
+    float f[8];
+    u16 u;
+    $ = start.end_ofs;
+    ChunkEnd end;
+};
+
 struct ImageData1C {
     char copyright[0x30];
     char version[0x20];
@@ -190,15 +198,11 @@ struct ImageData1C {
     u16 u3;
     u8 u4[3];
     u16 u5[9];
+
+    SubChunk c1;
+    ImageHeader header;
 };
 
-struct ImageHeader {
-    ChunkStart start;
-    float f[8];
-    u16 u;
-    $ = start.end_ofs;
-    ChunkEnd end;
-};
 
 struct ImageData {
     ChunkStart start;
@@ -209,8 +213,6 @@ struct ImageData {
     (_): 
         std::warning("Unknown string type");
     }
-    SubChunk c1;
-    ImageHeader header;
     SubChunk subChunks[while($ < start.end_ofs)];
     $ = start.end_ofs;
     ChunkEnd end;
