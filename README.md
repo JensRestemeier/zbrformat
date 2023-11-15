@@ -1,5 +1,5 @@
 # zbrformat
-These are my investigations into the file format used for ZBrush. Unfortunatly it is far from complete, and it can just about extract a thumbnail from existing files.
+These are my investigations into the file format used for ZBrush. Unfortunatly it is far from complete, and it can just about extract a thumbnail from existing files. My main interest is exporting the 2.5D "pixol" canvas, including materials.
 
 ## zbrformat.py
 This is a tool to extract the document structure of ZBrush documents. It does some brute-force searching, as I don't think the file contains all information to parse it, and the data layout depends on the internal data structures of the program.
@@ -10,3 +10,6 @@ My first thought was that the 16 bit number is an identifier, but they seem to b
 
 ## zbropen.py
 A start of file loader - I am a bit stuck on decompressing the main image, though.
+
+## zbrformat.hexpat
+A pattern for [ImHex](https://github.com/WerWolv/ImHex) - in progress.
